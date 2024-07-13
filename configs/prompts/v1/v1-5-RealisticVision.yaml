@@ -1,5 +1,5 @@
 # motion module v1_14
-- dreambooth_path: "models/DreamBooth_LoRA/realisticVisionV20_v20.safetensors"
+- dreambooth_path: "models/DreamBooth_LoRA/realisticVisionV60B1_v51VAE.safetensors"
   lora_model_path: ""
 
   inference_config: "configs/inference/inference-v1.yaml"
@@ -23,7 +23,7 @@
 
 
 # motion module v1_15
-- dreambooth_path: "models/DreamBooth_LoRA/realisticVisionV20_v20.safetensors"
+- dreambooth_path: "models/DreamBooth_LoRA/realisticVisionV60B1_v51VAE.safetensors"
   lora_model_path: ""
 
   inference_config: "configs/inference/inference-v1.yaml"
