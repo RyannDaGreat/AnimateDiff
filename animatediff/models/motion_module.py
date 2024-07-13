@@ -16,6 +16,7 @@ from diffusers.models.attention import CrossAttention, FeedForward
 from einops import rearrange, repeat
 import math
 
+import rp
 
 def zero_module(module):
     # Zero out the parameters of a module and return it.
@@ -77,6 +78,15 @@ class VanillaTemporalModule(nn.Module):
             self.temporal_transformer.proj_out = zero_module(self.temporal_transformer.proj_out)
 
     def forward(self, input_tensor, temb, encoder_hidden_states, attention_mask=None, anchor_frame_idx=None):
+        # rp.debug_comment(input_tensor.shape)# --> torch.Size([2, 320, 16, 64, 64])
+        # rp.debug_comment(temb.shape)# --> torch.Size([2, 1280])
+        # rp.debug_comment(encoder_hidden_states.shape)# --> torch.Size([2, 77, 768])
+        # rp.debug_comment(attention_mask)# --> None
+        # rp.debug_comment(anchor_frame_idx)# --> None
+        # rp.debug_comment(temb.min())# --> tensor(-1.4261, device='cuda:0')
+        # rp.debug_comment(temb.max())# --> tensor(3.0381, device='cuda:0')
+
+
         hidden_states = input_tensor
         hidden_states = self.temporal_transformer(hidden_states, encoder_hidden_states, attention_mask)
 
@@ -299,10 +309,23 @@ class VersatileAttention(CrossAttention):
         key = self.to_k(encoder_hidden_states)
         value = self.to_v(encoder_hidden_states)
 
+        rp.debug_comment(dim)# --> 320
+        rp.debug_comment(encoder_hidden_states.shape)# --> torch.Size([8192, 16, 320])
+        rp.debug_comment(key.shape)# --> torch.Size([8192, 16, 320])
+        rp.debug_comment(value.shape)# --> torch.Size([8192, 16, 320])
+        rp.debug_comment(query.shape)# --> torch.Size([65536, 16, 40])
+
         key = self.reshape_heads_to_batch_dim(key)
         value = self.reshape_heads_to_batch_dim(value)
 
+        rp.debug_comment(key.shape)# --> torch.Size([65536, 16, 40])
+        rp.debug_comment(value.shape)# --> torch.Size([65536, 16, 40])
+        rp.debug_comment(query.shape)# --> torch.Size([65536, 16, 40])
+
         if attention_mask is not None:
+
+            rp.debug_comment(attention_mask.shape)
+
             if attention_mask.shape[-1] != query.shape[1]:
                 target_length = query.shape[1]
                 attention_mask = F.pad(attention_mask, (0, target_length), value=0.0)
@@ -313,19 +336,27 @@ class VersatileAttention(CrossAttention):
             hidden_states = self._memory_efficient_attention_xformers(query, key, value, attention_mask)
             # Some versions of xformers return output in fp32, cast it back to the dtype of the input
             hidden_states = hidden_states.to(query.dtype)
+            rp.debug_comment(hidden_states.shape)
         else:
             if self._slice_size is None or query.shape[0] // self._slice_size == 1:
                 hidden_states = self._attention(query, key, value, attention_mask)
+                rp.debug_comment(hidden_states.shape)# --> torch.Size([8192, 16, 320])
             else:
                 hidden_states = self._sliced_attention(query, key, value, sequence_length, dim, attention_mask)
+                rp.debug_comment(hidden_states.shape)
+
+        rp.debug_comment(hidden_states.shape)# --> torch.Size([8192, 16, 320])
 
         # linear proj
         hidden_states = self.to_out[0](hidden_states)
+        rp.debug_comment(hidden_states.shape)# --> torch.Size([8192, 16, 320])
 
         # dropout
         hidden_states = self.to_out[1](hidden_states)
+        rp.debug_comment(hidden_states.shape)# --> torch.Size([8192, 16, 320])
 
         if self.attention_mode == "Temporal":
             hidden_states = rearrange(hidden_states, "(b d) f c -> (b f) d c", d=d)
+            rp.debug_comment(hidden_states.shape)# --> torch.Size([32, 4096, 320])
 
         return hidden_states
