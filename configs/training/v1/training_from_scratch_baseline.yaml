@@ -1,6 +1,6 @@
 image_finetune: false
 
-output_dir: "outputs_masked_attention_from_scratch"
+output_dir: "outputs_masked_attention_from_scratch_baseline"
 pretrained_model_path: "models/StableDiffusion/stable-diffusion-v1-5"
 
 unet_additional_kwargs:
@@ -91,4 +91,4 @@ is_debug: False
 
 #Ryan: This masks the attention autoregressively during both training and inference if True.
 #If False, acts like the original AnimateDiff
-autoregressive_attention_mask: True
+autoregressive_attention_mask: False
