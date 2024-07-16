@@ -1,6 +1,6 @@
 image_finetune: false
 
-output_dir: "outputs_masked_attention"
+output_dir: "outputs_masked_attention_from_scratch"
 pretrained_model_path: "models/StableDiffusion/stable-diffusion-v1-5"
 
 unet_additional_kwargs:
@@ -67,7 +67,7 @@ validation_data:
 trainable_modules:
   - "motion_modules."
 
-unet_checkpoint_path: "/root/CleanCode/Github/AnimateDiff/models/Motion_Module/mm_sd_v15_v2.ckpt"
+# unet_checkpoint_path: "/root/CleanCode/Github/AnimateDiff/models/Motion_Module/mm_sd_v15_v2.ckpt"
 
 learning_rate:    1.e-4
 train_batch_size: 2 #Per GPU batch size
