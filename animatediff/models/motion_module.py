@@ -176,6 +176,19 @@ class TemporalTransformer3DModel(nn.Module):
         return output
 
 
+def attention_mask_matrix(sz:int):
+    #From https://discuss.pytorch.org/t/the-way-to-implement-attention-mask-uni-direction-attention-in-transformerdecoder/73124/4
+    #   >>> attention_mask_matrix(5)
+    #   tensor([[0., -inf, -inf, -inf, -inf],
+    #           [0., 0., -inf, -inf, -inf],
+    #           [0., 0., 0., -inf, -inf],
+    #           [0., 0., 0., 0., -inf],
+    #           [0., 0., 0., 0., 0.]])
+    mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
+    mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+    assert mask.ndim==2
+    return mask
+
 class TemporalTransformerBlock(nn.Module):
     def __init__(
         self,
@@ -235,7 +248,9 @@ class TemporalTransformerBlock(nn.Module):
         self.ff_norm = nn.LayerNorm(dim)
 
 
-    def forward(self, hidden_states, encoder_hidden_states=None, attention_mask=None, video_length=None):
+
+    def forward(self, hidden_states, encoder_hidden_states=None, attention_mask=None, video_length=None,  autoregressive_attention_mask = True):
+
         for attention_block, norm in zip(self.attention_blocks, self.norms):
             # rp.fansi_print(attention_block.is_cross_attention, 'green', 'bold') #Is always False
             # rp.fansi_print(hidden_states.shape, 'green', 'bold')# [32, 1024, 640]   [32, 256, 1280]   [32, 4096, 320]   [32, 64, 1280]
@@ -245,6 +260,7 @@ class TemporalTransformerBlock(nn.Module):
                 norm_hidden_states,
                 encoder_hidden_states=encoder_hidden_states if attention_block.is_cross_attention else None,
                 video_length=video_length,
+                autoregressive_attention_mask=autoregressive_attention_mask,
             ) + hidden_states
             
         hidden_states = self.ff(self.ff_norm(hidden_states)) + hidden_states
@@ -301,7 +317,7 @@ class VersatileAttention(CrossAttention):
     def extra_repr(self):
         return f"(Module Info) Attention_Mode: {self.attention_mode}, Is_Cross_Attention: {self.is_cross_attention}"
 
-    def forward(self, hidden_states, encoder_hidden_states=None, attention_mask=None, video_length=None):
+    def forward(self, hidden_states, encoder_hidden_states=None, attention_mask=None, video_length=None, autoregressive_attention_mask = False):
         batch_size, sequence_length, _ = hidden_states.shape
 
         if self.attention_mode == "Temporal":
@@ -333,16 +349,35 @@ class VersatileAttention(CrossAttention):
 
         rp.debug_comment(dim)# --> 1280
         rp.debug_comment(encoder_hidden_states.shape)# --> torch.Size([512, 16, 1280])
-        rp.debug_comment(key.shape)# --> torch.Size([512, 16, 1280])
+        rp.debug_comment(key  .shape)# --> torch.Size([512, 16, 1280])
         rp.debug_comment(value.shape)# --> torch.Size([512, 16, 1280])
         rp.debug_comment(query.shape)# --> torch.Size([4096, 16, 160])
 
         key = self.reshape_heads_to_batch_dim(key)
         value = self.reshape_heads_to_batch_dim(value)
 
-        rp.debug_comment(key.shape)# --> torch.Size([4096, 16, 160])
+        rp.debug_comment(key.shape)  # --> torch.Size([4096, 16, 160])
         rp.debug_comment(value.shape)# --> torch.Size([4096, 16, 160])
         rp.debug_comment(query.shape)# --> torch.Size([4096, 16, 160])
+
+
+        if autoregressive_attention_mask:
+            assert attention_mask is None
+            attention_mask  = attention_mask_matrix(key.shape[1]).T[None].to(key.device)
+            # attention_mask  = attention_mask.flip(1)
+
+            # rp.display_image_in_terminal_color(
+            #     rp.apply_colormap_to_image(
+            #         rp.full_range(
+            #             rp.as_numpy_array(
+            #                 attention_mask[0],
+            #             ),
+            #         ),
+            #     )
+            # )
+
+            print(attention_mask)
+            rp.debug_comment(attention_mask.shape)
 
         if attention_mask is not None:
 
