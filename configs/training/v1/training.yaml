@@ -72,6 +72,9 @@ unet_checkpoint_path: "/root/CleanCode/Github/AnimateDiff/models/Motion_Module/m
 learning_rate:    1.e-4
 train_batch_size: 2 #Per GPU batch size
 
+#We want a big batch size - we're deleting half the attention values
+gradient_accumulation_steps: 4
+
 max_train_epoch:      -1
 max_train_steps:      1000
 checkpointing_epochs: -1
@@ -85,3 +88,7 @@ mixed_precision_training: true
 enable_xformers_memory_efficient_attention: True
 
 is_debug: False
+
+#Ryan: This masks the attention autoregressively during both training and inference if True.
+#If False, acts like the original AnimateDiff
+autoregressive_attention_mask: True

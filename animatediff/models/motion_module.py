@@ -17,6 +17,7 @@ from einops import rearrange, repeat
 import math
 
 import rp
+import rp.r_iterm_comm as ric
 
 def zero_module(module):
     # Zero out the parameters of a module and return it.
@@ -249,7 +250,11 @@ class TemporalTransformerBlock(nn.Module):
 
 
 
-    def forward(self, hidden_states, encoder_hidden_states=None, attention_mask=None, video_length=None,  autoregressive_attention_mask = True):
+    def forward(self, hidden_states, encoder_hidden_states=None, attention_mask=None, video_length=None):
+
+        #Ryan: Optional masking of the attention masks
+        autoregressive_attention_mask = getattr(ric, 'autoregressive_attention_mask', False)
+        rp.fansi_print("Setting autoregressive_attention_mask = "+str(autoregressive_attention_mask), 'yellow', 'bold')
 
         for attention_block, norm in zip(self.attention_blocks, self.norms):
             # rp.fansi_print(attention_block.is_cross_attention, 'green', 'bold') #Is always False
@@ -317,7 +322,7 @@ class VersatileAttention(CrossAttention):
     def extra_repr(self):
         return f"(Module Info) Attention_Mode: {self.attention_mode}, Is_Cross_Attention: {self.is_cross_attention}"
 
-    def forward(self, hidden_states, encoder_hidden_states=None, attention_mask=None, video_length=None, autoregressive_attention_mask = False):
+    def forward(self, hidden_states, encoder_hidden_states=None, attention_mask=None, video_length=None, *, autoregressive_attention_mask):
         batch_size, sequence_length, _ = hidden_states.shape
 
         if self.attention_mode == "Temporal":

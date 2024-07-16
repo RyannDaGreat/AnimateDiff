@@ -39,7 +39,8 @@ from animatediff.models.unet import UNet3DConditionModel
 from animatediff.pipelines.pipeline_animation import AnimationPipeline
 from animatediff.utils.util import save_videos_grid, zero_rank_print
 
-
+from icecream import ic
+import rp.r_iterm_comm as ric
 
 def init_dist(launcher="slurm", backend='nccl', port=29500, **kwargs):
     """Initializes distributed environment."""
@@ -122,7 +123,20 @@ def main(
 
     global_seed: int = 42,
     is_debug: bool = False,
+
+    #Ryan Added This
+    autoregressive_attention_mask = False,
 ):
+
+    #Print out some important info
+    ic(
+        gradient_accumulation_steps,
+        autoregressive_attention_mask,
+    )
+
+    #A cross-module variable. Used in motion_module.py
+    ric.autoregressive_attention_mask = autoregressive_attention_mask
+
     check_min_version("0.10.0.dev0")
 
     # Initialize distributed training
