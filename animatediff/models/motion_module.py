@@ -79,18 +79,18 @@ class VanillaTemporalModule(nn.Module):
             self.temporal_transformer.proj_out = zero_module(self.temporal_transformer.proj_out)
 
     def forward(self, input_tensor, temb, encoder_hidden_states, attention_mask=None, anchor_frame_idx=None):
-        #input_tensor: Batch, Chan, Frame, Height, Width    [batch is 2 for CFG]
+        #input_tensor: Batch, Chan, Frame, Height, Width    [batch is 2 for CFG]# --> torch.Size([2, 320, 16, 32, 32])
         rp.debug_comment(input_tensor.shape)# --> torch.Size([2, 1280, 16, 16, 16])
-        #temb: Batch, Chan 
+        #temb: Batch, Chan# --> torch.Size([2, 1280])
         rp.debug_comment(temb.shape)# --> torch.Size([2, 1280])
         
         #This looks like CLIP...
-        #Is this being used from cross-attention?
+        #Is this being used from cross-attention?# --> torch.Size([2, 77, 768])
         rp.debug_comment(encoder_hidden_states.shape)# --> torch.Size([2, 77, 768])
-
+# --> None
         rp.debug_comment(attention_mask)# --> None
-        rp.debug_comment(anchor_frame_idx)# --> None
-        rp.debug_comment(temb.min())# --> tensor(-2.9670, device='cuda:0')
+        rp.debug_comment(anchor_frame_idx)# --> tensor(-2.3555, device='cuda:4', dtype=torch.float16)
+        rp.debug_comment(temb.min())# --> tensor(2.5625, device='cuda:4', dtype=torch.float16)
         rp.debug_comment(temb.max())# --> tensor(4.2592, device='cuda:0')
 
 
@@ -347,18 +347,18 @@ class VersatileAttention(CrossAttention):
 
         if self.added_kv_proj_dim is not None:
             raise NotImplementedError
-
-        encoder_hidden_states = encoder_hidden_states if encoder_hidden_states is not None else hidden_states
-        key = self.to_k(encoder_hidden_states)
-        value = self.to_v(encoder_hidden_states)
-
+# --> 320
+        encoder_hidden_states = encoder_hidden_states if encoder_hidden_states is not None else hidden_states# --> torch.Size([2048, 16, 320])
+        key = self.to_k(encoder_hidden_states)# --> torch.Size([2048, 16, 320])
+        value = self.to_v(encoder_hidden_states)# --> torch.Size([2048, 16, 320])
+# --> torch.Size([16384, 16, 40])
         rp.debug_comment(dim)# --> 1280
         rp.debug_comment(encoder_hidden_states.shape)# --> torch.Size([512, 16, 1280])
         rp.debug_comment(key  .shape)# --> torch.Size([512, 16, 1280])
         rp.debug_comment(value.shape)# --> torch.Size([512, 16, 1280])
-        rp.debug_comment(query.shape)# --> torch.Size([4096, 16, 160])
-
-        key = self.reshape_heads_to_batch_dim(key)
+        rp.debug_comment(query.shape)# --> torch.Size([16384, 16, 40])
+# --> torch.Size([16384, 16, 40])
+        key = self.reshape_heads_to_batch_dim(key)# --> torch.Size([16384, 16, 40])
         value = self.reshape_heads_to_batch_dim(value)
 
         rp.debug_comment(key.shape)  # --> torch.Size([4096, 16, 160])
@@ -377,11 +377,11 @@ class VersatileAttention(CrossAttention):
             #             rp.as_numpy_array(
             #                 attention_mask[0],
             #             ),
-            #         ),
+            #         ),# --> torch.Size([1, 16, 16])
             #     )
             # )
 
-            print(attention_mask)
+            print(attention_mask)# --> torch.Size([1, 16, 16])
             rp.debug_comment(attention_mask.shape)
 
         if attention_mask is not None:
@@ -397,24 +397,24 @@ class VersatileAttention(CrossAttention):
         if self._use_memory_efficient_attention_xformers:
             hidden_states = self._memory_efficient_attention_xformers(query, key, value, attention_mask)
             # Some versions of xformers return output in fp32, cast it back to the dtype of the input
-            hidden_states = hidden_states.to(query.dtype)
+            hidden_states = hidden_states.to(query.dtype)# --> torch.Size([2048, 16, 320])
             rp.debug_comment(hidden_states.shape)
         else:
             if self._slice_size is None or query.shape[0] // self._slice_size == 1:
                 hidden_states = self._attention(query, key, value, attention_mask)
-                rp.debug_comment(hidden_states.shape)# --> torch.Size([512, 16, 1280])
+                rp.debug_comment(hidden_states.shape)# --> torch.Size([2048, 16, 320])
             else:
                 hidden_states = self._sliced_attention(query, key, value, sequence_length, dim, attention_mask)
                 rp.debug_comment(hidden_states.shape)
-
+# --> torch.Size([2048, 16, 320])
         rp.debug_comment(hidden_states.shape)# --> torch.Size([512, 16, 1280])
 
         # linear proj
-        hidden_states = self.to_out[0](hidden_states)
+        hidden_states = self.to_out[0](hidden_states)# --> torch.Size([2048, 16, 320])
         rp.debug_comment(hidden_states.shape)# --> torch.Size([512, 16, 1280])
 
         # dropout
-        hidden_states = self.to_out[1](hidden_states)
+        hidden_states = self.to_out[1](hidden_states)# --> torch.Size([32, 1024, 320])
         rp.debug_comment(hidden_states.shape)# --> torch.Size([512, 16, 1280])
 
         if self.attention_mode == "Temporal":
