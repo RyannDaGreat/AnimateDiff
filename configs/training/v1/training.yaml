@@ -1,6 +1,6 @@
 image_finetune: false
 
-output_dir: "outputs"
+output_dir: "outputs_project_diagonal_bunny_maker"
 pretrained_model_path: "models/StableDiffusion/stable-diffusion-v1-5"
 
 unet_additional_kwargs:
@@ -15,7 +15,7 @@ unet_additional_kwargs:
     num_transformer_block              : 1
     attention_block_types              : [ "Temporal_Self", "Temporal_Self" ]
     temporal_position_encoding         : true
-    temporal_position_encoding_max_len : 24
+    temporal_position_encoding_max_len : 32
     temporal_attention_dim_div         : 1
     zero_initialize                    : true
 
@@ -28,8 +28,8 @@ noise_scheduler_kwargs:
   clip_sample:         false
 
 train_data:
-  csv_path:        "/mnt/petrelfs/guoyuwei/projects/datasets/webvid/results_2M_val.csv"
-  video_folder:    "/mnt/petrelfs/guoyuwei/projects/datasets/webvid/2M_val"
+  csv_path:        "/root/CleanCode/Github/AnimateDiff/meta_clips_v1.0_info_fmin1_aes_aesmin5.0_caption_77tokens.csv"
+  video_folder:    "/fsx_scanline/from_eyeline/ning_video_genai/datasets/Inter4K+Pexels/clips_v1.0"
   sample_size:     256
   sample_stride:   4
   sample_n_frames: 16
@@ -40,23 +40,44 @@ validation_data:
     - "A drone view of celebration with Christma tree and fireworks, starry sky - background."
     - "Robot dancing in times square."
     - "Pacific coast, carmel by the sea ocean and waves."
+    - "A basketball falling through a hoop"
+    - "An archer shooting a target"
+    - "Pouring wine into a glass from a bottle"
+    - "Fireworks exploding"
+    - "A motorboat causing ripples and waves in the water"
+    - "A wooden block tower crumbling"
+    - "An hourglass pouring sand"
+    - "Blowing up a mountain with dynamite"
+    - "An eagle soaring through the air"
+    - "A car driving on the road"
+    - "A tree falling down"
+    - "An ice sculpture melting"
+    - "Glass shattering"
+    - "Timelapse of mushrooms growing"
+    - "Taking a big bite out of a cookie"
+    - "Painting a line on a canvas"
+    - "Ripping a piece of paper up"
+    - "Closing a laptop"
+    - "The wheel of fortune, spinning clockwise"
+    - "The sun setting going from day to night"
+    - "Turning on the lights"
   num_inference_steps: 25
   guidance_scale: 8.
 
 trainable_modules:
   - "motion_modules."
 
-unet_checkpoint_path: ""
+unet_checkpoint_path: "/root/CleanCode/Github/AnimateDiff/models/Motion_Module/mm_sd_v15_v2.ckpt"
 
 learning_rate:    1.e-4
-train_batch_size: 4
+train_batch_size: 2 #Per GPU batch size
 
 max_train_epoch:      -1
-max_train_steps:      100
+max_train_steps:      1000
 checkpointing_epochs: -1
-checkpointing_steps:  60
+checkpointing_steps:  100
 
-validation_steps:       5000
+validation_steps:       100
 validation_steps_tuple: [2, 50]
 
 global_seed: 42
