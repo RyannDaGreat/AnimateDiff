@@ -1,5 +1,5 @@
 unet_additional_kwargs:
-  unet_use_cross_frame_attention: false
+  unet_use_cross_frame_attention: false #GARBAGE!!! NEVER SET TO TRUE. WILL CRASH THE CODE. THEY NEVER IMPLEMENTED IT.
   unet_use_temporal_attention:    false
   use_motion_module:              true
   motion_module_resolutions:      [1,2,4,8]
