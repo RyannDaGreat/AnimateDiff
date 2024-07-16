@@ -18,8 +18,8 @@ class WebVid10M(Dataset):
             is_image=False,
         ):
         zero_rank_print(f"loading annotations from {csv_path} ...")
-        with open(csv_path, 'r') as csvfile:
-            self.dataset = list(csv.DictReader(csvfile))
+        with open(csv_path, 'r', encoding="ISO-8859-1") as csvfile:
+            self.dataset = list(csv.DictReader(csvfile, fieldnames=['path', 'caption']))
         self.length = len(self.dataset)
         zero_rank_print(f"data scale: {self.length}")
 
@@ -38,9 +38,8 @@ class WebVid10M(Dataset):
     
     def get_batch(self, idx):
         video_dict = self.dataset[idx]
-        videoid, name, page_dir = video_dict['videoid'], video_dict['name'], video_dict['page_dir']
+        video_dir, caption = video_dict['path'], video_dict['caption']
         
-        video_dir    = os.path.join(self.video_folder, f"{videoid}.mp4")
         video_reader = VideoReader(video_dir)
         video_length = len(video_reader)
         
@@ -58,7 +57,7 @@ class WebVid10M(Dataset):
         if self.is_image:
             pixel_values = pixel_values[0]
         
-        return pixel_values, name
+        return pixel_values, caption
 
     def __len__(self):
         return self.length
@@ -66,14 +65,15 @@ class WebVid10M(Dataset):
     def __getitem__(self, idx):
         while True:
             try:
-                pixel_values, name = self.get_batch(idx)
+                pixel_values, caption = self.get_batch(idx)
                 break
 
             except Exception as e:
+                print('Entry %d has a broken loading' % idx)
                 idx = random.randint(0, self.length-1)
 
         pixel_values = self.pixel_transforms(pixel_values)
-        sample = dict(pixel_values=pixel_values, text=name)
+        sample = dict(pixel_values=pixel_values, text=caption)
         return sample
 
 
